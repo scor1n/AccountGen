@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35327.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DawnAccountGen", "DawnAccountGen.csproj", "{7EB63C87-56C2-4AD8-B915-A2E2FC0C0470}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7EB63C87-56C2-4AD8-B915-A2E2FC0C0470}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7EB63C87-56C2-4AD8-B915-A2E2FC0C0470}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7EB63C87-56C2-4AD8-B915-A2E2FC0C0470}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7EB63C87-56C2-4AD8-B915-A2E2FC0C0470}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C4ED99EB-D430-41EC-84F6-5CD1FCD6E55A}
+	EndGlobalSection
+EndGlobal
