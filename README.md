@@ -1,4 +1,4 @@
-# DawnAccountGen
+# AccountGen
 
 ## Overview
 This project requires proxies and specific settings to function correctly. Please follow the setup instructions below to ensure everything runs smoothly.
