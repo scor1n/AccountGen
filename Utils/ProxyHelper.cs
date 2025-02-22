@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DawnAccountGen.Utils
+namespace AccountGen.Utils
 {
     internal static class ProxyHelper
     {

@@ -1,9 +1,9 @@
-﻿using DawnAccountGen.Modules.Dawn;
-using DawnAccountGen.Modules.Grass;
-using DawnAccountGen.Utils;
+﻿using AccountGen.Modules.Dawn;
+using AccountGen.Modules.Grass;
+using AccountGen.Utils;
 using System.Globalization;
 
-namespace DawnAccountGen
+namespace AccountGen
 {
     internal class Program
     {

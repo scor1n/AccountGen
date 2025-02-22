@@ -1,4 +1,4 @@
-﻿using DawnAccountGen.Utils;
+﻿using AccountGen.Utils;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DawnAccountGen.Modules.Dawn
+namespace AccountGen.Modules.Dawn
 {
     internal class Dawn
     {
