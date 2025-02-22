@@ -146,7 +146,7 @@ namespace AccountGen.Utils
         public async Task<string?> GetRecaptchaV2Enterprise(string url, string key)
         {
 
-            string TaskId = CreateTask("ReCaptchaV2EnterpriseTaskProxyLess", url, key, isInvisible: true);
+            string TaskId = CreateTask("ReCaptchaV2EnterpriseTaskProxyLess", url, key, isInvisible: false);
 
             if (String.IsNullOrWhiteSpace(TaskId))
             {
