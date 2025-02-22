@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace DawnAccountGen.Utils
+namespace AccountGen.Utils
 {
     public class RequestResult
     {

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DawnAccountGen.Classes
+namespace AccountGen.Classes
 {
     internal class Settings
     {
