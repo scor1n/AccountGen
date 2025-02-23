@@ -46,6 +46,9 @@ namespace AccountGen
             {
                 Console.WriteLine("Invalid option");
             }
+
+            Console.WriteLine("Press enter to exit");
+            Console.ReadLine();
         }
     }
 }
