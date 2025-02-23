@@ -28,5 +28,13 @@ namespace AccountGen.Utils
             var proxySplit = proxy.Split("@");
             return $"{proxySplit[1]}:{proxySplit[0]}";
         }
+
+        internal static string FormatProxy(string proxy)
+        {
+            var rawProxyString = proxy.Trim();
+            var rawProxySplit = rawProxyString.Split(':');
+            var formatedProxy = $"http://{rawProxySplit[2]}:{rawProxySplit[3]}@{rawProxySplit[0]}:{rawProxySplit[1]}";
+            return formatedProxy;
+        }
     }
 }

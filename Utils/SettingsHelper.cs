@@ -1,4 +1,5 @@
 ﻿using AccountGen.Classes;
+using MailKit.Net.Imap;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -19,7 +20,11 @@ namespace AccountGen.Utils
             DawnReferralCode = "",
             GrassReferralCode = "EV08HjfB81lPdgM",
             InputProxyFile = "./Input/Proxies.txt",
-            OutputFolder = "./Output/"
+            OutputFolder = "./Output/",
+            ImapHost = "imap.gmail.com",
+            ImapPort = "993",
+            ImapUsername = "",
+            ImapPassword = ""
         };
 
         private static readonly string settingsFilename = "settings.json";
@@ -171,6 +176,82 @@ namespace AccountGen.Utils
             }
 
             return settings.OutputFolder;
+        }
+
+        public static string GetImapHost()
+        {
+            if (File.Exists(settingsFilename))
+            {
+                using StreamReader r = new(settingsFilename);
+                string json = r.ReadToEnd();
+                settings = JObject.Parse(json).ToObject<Settings>() ?? settings;
+            }
+            else
+            {
+                Console.WriteLine("Settings.json does not exist. Creating a new one which you must fill in with your information");
+                var jsonString = JObject.FromObject(settings).ToString(Formatting.Indented);
+                File.WriteAllText(settingsFilename, jsonString);
+                return "imap.gmail.com";
+            }
+
+            return settings.ImapHost;
+        }
+
+        public static string GetImapPort()
+        {
+            if (File.Exists(settingsFilename))
+            {
+                using StreamReader r = new(settingsFilename);
+                string json = r.ReadToEnd();
+                settings = JObject.Parse(json).ToObject<Settings>() ?? settings;
+            }
+            else
+            {
+                Console.WriteLine("Settings.json does not exist. Creating a new one which you must fill in with your information");
+                var jsonString = JObject.FromObject(settings).ToString(Formatting.Indented);
+                File.WriteAllText(settingsFilename, jsonString);
+                return "993";
+            }
+
+            return settings.ImapPort;
+        }
+
+        public static string GetImapUsername()
+        {
+            if (File.Exists(settingsFilename))
+            {
+                using StreamReader r = new(settingsFilename);
+                string json = r.ReadToEnd();
+                settings = JObject.Parse(json).ToObject<Settings>() ?? settings;
+            }
+            else
+            {
+                Console.WriteLine("Settings.json does not exist. Creating a new one which you must fill in with your information");
+                var jsonString = JObject.FromObject(settings).ToString(Formatting.Indented);
+                File.WriteAllText(settingsFilename, jsonString);
+                return "";
+            }
+
+            return settings.ImapUsername;
+        }
+
+        public static string GetImapPassword()
+        {
+            if (File.Exists(settingsFilename))
+            {
+                using StreamReader r = new(settingsFilename);
+                string json = r.ReadToEnd();
+                settings = JObject.Parse(json).ToObject<Settings>() ?? settings;
+            }
+            else
+            {
+                Console.WriteLine("Settings.json does not exist. Creating a new one which you must fill in with your information");
+                var jsonString = JObject.FromObject(settings).ToString(Formatting.Indented);
+                File.WriteAllText(settingsFilename, jsonString);
+                return "";
+            }
+
+            return settings.ImapPassword;
         }
     }
 }

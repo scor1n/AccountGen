@@ -1,12 +1,7 @@
-﻿using AccountGen.Utils;
+﻿using AccountGen.Services;
+using AccountGen.Utils;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
+using RandomNameGeneratorLibrary;
 
 namespace AccountGen.Modules.Dawn
 {
@@ -15,10 +10,12 @@ namespace AccountGen.Modules.Dawn
         private CapsolverHandler caphandler = new CapsolverHandler();
         private TLSSession tlsSession = new();
         private Random random = new Random();
+        private PersonNameGenerator nameGenerator = new PersonNameGenerator();
         private readonly string catchallDomain = SettingsHelper.GetCatchallDomain();
         private readonly string capsolverKey = SettingsHelper.GetCapsolverKey();
         private readonly string twoLetterCountryCode = SettingsHelper.GetTwoLetterCountryCode();
         private readonly string dawnReferralCode = SettingsHelper.GetDawnReferralCode();
+        private readonly string dawnTurnstileKey = "0x4AAAAAAA48wVDquA-98fyV";
 
         internal void GenerateAccounts(int quantity)
         {
@@ -43,7 +40,15 @@ namespace AccountGen.Modules.Dawn
             accounts.Add("email,password,proxy");
             for (int i = 0; i < quantity; i++)
             {
-                accounts.Add(GenerateAccount(proxies[quantity % proxies.Count]));
+                var account = GenerateAccount(proxies[quantity % proxies.Count]);
+                if (account != ",,")
+                {
+                    accounts.Add(account);
+                }
+                else
+                {
+                    i--;
+                }
             }
 
             Console.WriteLine("Finished generating accounts!");
@@ -52,14 +57,37 @@ namespace AccountGen.Modules.Dawn
             File.WriteAllLines(filePath, accounts);
 
             Console.WriteLine($"Successfully saved accounts to {filePath}");
+            Console.WriteLine("Waiting 10s before starting email verifications");
+
+            Thread.Sleep(10000);
+
+            Console.WriteLine("Starting to verify accounts");
+
+            for (int i = 1; i < accounts.Count; ++i)
+            {
+                var account = accounts[i].Split(',');
+                var username = account[0];
+                var proxy = account[2];
+                Console.WriteLine($"Starting verification for {username}");
+
+                if (VerifyAccount(username, proxy))
+                {
+                    Console.WriteLine($"Account {username} Successfully verified");
+                } 
+                else
+                {
+                    Console.WriteLine($"Failed to verify account {username}, please try manually");
+                }
+            }
+
+            Console.WriteLine("Task completed successfully");
         }
 
         private string GenerateAccount(string proxy)
         {
             Console.WriteLine($"Starting to generate account with proxy: {proxy}");
-            string key = "0x4AAAAAAA48wVDquA-98fyV";
 
-            var tokenTask = caphandler.GetTurnstile("https://dashboard.dawninternet.com/signup", key);
+            var tokenTask = caphandler.GetTurnstile("https://dashboard.dawninternet.com/signup", dawnTurnstileKey);
             tokenTask.Wait();
             var token = tokenTask.Result ?? "";
 
@@ -70,7 +98,7 @@ namespace AccountGen.Modules.Dawn
                 { "Content-Type", "application/json" }
             };
 
-            var names = GenerateFirstAndLastName();
+            var names = nameGenerator.GenerateRandomFirstAndLastName().Split(' ');
             var email = $"{names[0]}.{names[1]}{random.Next(99)}@{catchallDomain}";
             var password = PasswordGenerator.GeneratePassword();
 
@@ -124,15 +152,65 @@ namespace AccountGen.Modules.Dawn
             }
         }
 
-        private static readonly string[] FirstNames = { "Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah" };
-        private static readonly string[] LastNames = { "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis" };
-
-        private static string[] GenerateFirstAndLastName()
+        private bool VerifyAccount(string username, string proxy)
         {
-            Random random = new Random();
-            string firstName = FirstNames[random.Next(FirstNames.Length)];
-            string lastName = LastNames[random.Next(LastNames.Length)];
-            return new string[] { firstName, lastName };
+            var verificationId = IMAPService.GetInstance().GetVerificationIdFromEmail(username);
+            
+            if (string.IsNullOrWhiteSpace(verificationId))
+            {
+                Console.WriteLine("Could not find verification id");
+                return false;
+            }
+
+            var tokenTask = caphandler.GetTurnstile("https://verify.dawninternet.com/chromeapi/dawn/v1/userverify/verifyconfirm", dawnTurnstileKey);
+            tokenTask.Wait();
+            var token = tokenTask.Result ?? "";
+
+            string url = $"https://verify.dawninternet.com/chromeapi/dawn/v1/userverify/verifycheck?key={verificationId}";
+
+            var headers = new Dictionary<string, string>
+            {
+                { "Content-Type", "application/json" }
+            };
+
+            var body = new Dictionary<string, object>
+            {
+                { "token", token }
+            };
+
+            var res = tlsSession.Post(url, headers, JObject.FromObject(body).ToString(), differentSession: true, proxy: ProxyHelper.FormatProxy(proxy));
+
+            if (res == null)
+            {
+                Console.WriteLine("Response was null");
+                return false;
+            }
+
+            if (res.Status != 200)
+            {
+                Console.WriteLine($"Status Code {res.Status}");
+                return false;
+            }
+
+            try
+            {
+                var jsonBody = JObject.Parse(res.Body);
+                if (jsonBody["success"].Value<bool?>() == false)
+                {
+                    Console.WriteLine("Got the following response when verifying: " + jsonBody.ToString());
+                    return false;
+                }
+
+                return true;
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error checking if success");
+                Console.WriteLine(ex.ToString());
+                return false;
+            }
         }
+
     }
 }

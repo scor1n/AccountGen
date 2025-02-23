@@ -5,5 +5,9 @@
   "DawnReferralCode": "",
   "GrassReferralCode": "EV08HjfB81lPdgM",
   "InputProxyFile": "./Input/Proxies.txt",
-  "OutputFolder": "./Output/"
+  "OutputFolder": "./Output/",
+  "ImapHost": "imap.gmail.com",
+  "ImapPort": 993,
+  "ImapUsername": "",
+  "ImapPassword": ""
 }

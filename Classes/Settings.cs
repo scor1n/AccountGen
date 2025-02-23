@@ -15,5 +15,9 @@ namespace AccountGen.Classes
         public required string GrassReferralCode { get; set; }
         public required string InputProxyFile { get; set; }
         public required string OutputFolder { get; set; }
+        public required string ImapHost { get; set; }
+        public required string ImapPort { get; set; }
+        public required string ImapUsername { get; set; }
+        public required string ImapPassword { get; set; }
     }
 }
