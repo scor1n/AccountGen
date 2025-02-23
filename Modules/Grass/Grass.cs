@@ -1,12 +1,6 @@
 ﻿using AccountGen.Utils;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
+using RandomNameGeneratorLibrary;
 
 namespace AccountGen.Modules.Grass
 {
@@ -15,6 +9,7 @@ namespace AccountGen.Modules.Grass
         private CapsolverHandler caphandler = new CapsolverHandler();
         private TLSSession tlsSession = new();
         private Random random = new Random();
+        private PersonNameGenerator nameGenerator = new PersonNameGenerator();
         private readonly string catchallDomain = SettingsHelper.GetCatchallDomain();
         private readonly string capsolverKey = SettingsHelper.GetCapsolverKey();
         private readonly string grassReferralCode = SettingsHelper.GetGrassReferralCode();
@@ -42,7 +37,7 @@ namespace AccountGen.Modules.Grass
             accounts.Add("email,password,proxy");
             for (int i = 0; i < quantity; i++)
             {
-                accounts.Add(GenerateAccount(proxies[quantity % proxies.Count]));
+                accounts.Add(GenerateAccount(proxies[random.Next(proxies.Count)]));
             }
 
             Console.WriteLine("Finished generating accounts!");
@@ -81,7 +76,7 @@ namespace AccountGen.Modules.Grass
                 { "Accept-Language", "en-US,en;q=0.9" }
             };
 
-            var names = GenerateFirstAndLastName();
+            var names = nameGenerator.GenerateRandomFirstAndLastName().Split(' ');
             var email = $"{names[0]}.{names[1]}{random.Next(99)}@{catchallDomain}";
             var password = PasswordGenerator.GeneratePassword();
 
@@ -108,17 +103,6 @@ namespace AccountGen.Modules.Grass
                 Console.WriteLine($"Error generating account ({res.Status})");
                 return ",,";
             }
-        }
-
-        private static readonly string[] FirstNames = { "Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah" };
-        private static readonly string[] LastNames = { "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis" };
-
-        private static string[] GenerateFirstAndLastName()
-        {
-            Random random = new Random();
-            string firstName = FirstNames[random.Next(FirstNames.Length)];
-            string lastName = LastNames[random.Next(LastNames.Length)];
-            return new string[] { firstName, lastName };
         }
     }
 }

@@ -40,7 +40,7 @@ namespace AccountGen.Modules.Dawn
             accounts.Add("email,password,proxy");
             for (int i = 0; i < quantity; i++)
             {
-                var account = GenerateAccount(proxies[quantity % proxies.Count]);
+                var account = GenerateAccount(proxies[random.Next(proxies.Count)]);
                 if (account != ",,")
                 {
                     accounts.Add(account);
