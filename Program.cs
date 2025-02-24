@@ -10,11 +10,11 @@ namespace AccountGen
         static void Main(string[] args)
         {
             SettingsHelper.InitSettings();
-            Console.WriteLine("Press 1 to generate dawn accounts or 2 for grass accounts");
+            LoggingHelper.Log("Press 1 to generate dawn accounts or 2 for grass accounts");
             var answer = Console.ReadLine();
             if (answer?.Contains("1") ?? false)
             {
-                Console.WriteLine("How many accounts would you like to generate?");
+                LoggingHelper.Log("How many accounts would you like to generate?");
                 answer = Console.ReadLine();
 
                 if (int.TryParse(answer, System.Globalization.NumberStyles.Integer, CultureInfo.InvariantCulture, out int count))
@@ -24,12 +24,12 @@ namespace AccountGen
                 }
                 else
                 {
-                    Console.WriteLine("Invalid option");
+                    LoggingHelper.Log("Invalid option", LoggingHelper.LogType.Error);
                 }
             }
             else if (answer?.Contains("2") ?? false)
             {
-                Console.WriteLine("How many accounts would you like to generate?");
+                LoggingHelper.Log("How many accounts would you like to generate?");
                 answer = Console.ReadLine();
 
                 if (int.TryParse(answer, System.Globalization.NumberStyles.Integer, CultureInfo.InvariantCulture, out int count))
@@ -39,15 +39,15 @@ namespace AccountGen
                 }
                 else
                 {
-                    Console.WriteLine("Invalid option");
+                    LoggingHelper.Log("Invalid option", LoggingHelper.LogType.Error);
                 }
             }
             else
             {
-                Console.WriteLine("Invalid option");
+                LoggingHelper.Log("Invalid option", LoggingHelper.LogType.Error);
             }
 
-            Console.WriteLine("Press enter to exit");
+            LoggingHelper.Log("Press enter to exit", LoggingHelper.LogType.Error);
             Console.ReadLine();
         }
     }
