@@ -18,7 +18,7 @@ namespace AccountGen.Modules.Grass
         {
             if (string.IsNullOrWhiteSpace(capsolverKey))
             {
-                Console.WriteLine("Capsolver key is empty! Cannot continue");
+                LoggingHelper.Log("Capsolver key is empty! Cannot continue", LoggingHelper.LogType.Error);
                 return;
             }
 
@@ -28,11 +28,11 @@ namespace AccountGen.Modules.Grass
             var proxies = ProxyHelper.GetProxies();
             if (proxies.Count == 0)
             {
-                Console.WriteLine("Did not find any proxies! Cannot continue");
+                LoggingHelper.Log("Did not find any proxies! Cannot continue", LoggingHelper.LogType.Error);
                 return;
             }
 
-            Console.WriteLine($"Starting to generate {quantity} accounts");
+            LoggingHelper.Log($"Starting to generate {quantity} accounts");
             List<string> accounts = new List<string>();
             accounts.Add("email,password,proxy");
             for (int i = 0; i < quantity; i++)
@@ -40,17 +40,17 @@ namespace AccountGen.Modules.Grass
                 accounts.Add(GenerateAccount(proxies[random.Next(proxies.Count)]));
             }
 
-            Console.WriteLine("Finished generating accounts!");
+            LoggingHelper.Log("Finished generating accounts!", LoggingHelper.LogType.Success);
 
             var filePath = $"{SettingsHelper.GetOutputFolder()}grassAccounts-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}.csv";
             File.WriteAllLines(filePath, accounts);
 
-            Console.WriteLine($"Successfully saved accounts to {filePath}");
+            LoggingHelper.Log($"Successfully saved accounts to {filePath}", LoggingHelper.LogType.Success);
         }
 
         private string GenerateAccount(string proxy)
         {
-            Console.WriteLine($"Starting to generate account with proxy: {proxy}");
+            LoggingHelper.Log($"Starting to generate account with proxy: {proxy}");
             string key = "6LeeT-0pAAAAAFJ5JnCpNcbYCBcAerNHlkK4nm6y";
 
             var tokenTask = caphandler.GetRecaptchaV2Enterprise("https://app.getgrass.io/register", key);
@@ -94,13 +94,13 @@ namespace AccountGen.Modules.Grass
 
             if (res.Status == 200)
             {
-                Console.WriteLine("Generated new account");
+                LoggingHelper.Log("Generated new account");
 
                 return $"{email},{password},{ProxyHelper.UnformatProxy(proxy)}";
             }
             else
             {
-                Console.WriteLine($"Error generating account ({res.Status})");
+                LoggingHelper.Log($"Error generating account ({res.Status})", LoggingHelper.LogType.Error);
                 return ",,";
             }
         }

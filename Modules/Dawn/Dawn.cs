@@ -21,7 +21,7 @@ namespace AccountGen.Modules.Dawn
         {
             if (string.IsNullOrWhiteSpace(capsolverKey))
             {
-                Console.WriteLine("Capsolver key is empty! Cannot continue");
+                LoggingHelper.Log("Capsolver key is empty! Cannot continue", LoggingHelper.LogType.Error);
                 return;
             }
 
@@ -31,11 +31,11 @@ namespace AccountGen.Modules.Dawn
             var proxies = ProxyHelper.GetProxies();
             if (proxies.Count == 0)
             {
-                Console.WriteLine("Did not find any proxies! Cannot continue");
+                LoggingHelper.Log("Did not find any proxies! Cannot continue", LoggingHelper.LogType.Error);
                 return;
             }
 
-            Console.WriteLine($"Starting to generate {quantity} accounts");
+            LoggingHelper.Log($"Starting to generate {quantity} accounts");
             List<string> accounts = new List<string>();
             accounts.Add("email,password,proxy");
             for (int i = 0; i < quantity; i++)
@@ -51,41 +51,41 @@ namespace AccountGen.Modules.Dawn
                 }
             }
 
-            Console.WriteLine("Finished generating accounts!");
+            LoggingHelper.Log("Finished generating accounts!", LoggingHelper.LogType.Success);
 
             var filePath = $"{SettingsHelper.GetOutputFolder()}dawnAccounts-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}.csv";
             File.WriteAllLines(filePath, accounts);
 
-            Console.WriteLine($"Successfully saved accounts to {filePath}");
-            Console.WriteLine("Waiting 10s before starting email verifications");
+            LoggingHelper.Log($"Successfully saved accounts to {filePath}", LoggingHelper.LogType.Success);
+            LoggingHelper.Log("Waiting 10s before starting email verifications");
 
             Thread.Sleep(10000);
 
-            Console.WriteLine("Starting to verify accounts");
+            LoggingHelper.Log("Starting to verify accounts");
 
             for (int i = 1; i < accounts.Count; ++i)
             {
                 var account = accounts[i].Split(',');
                 var username = account[0];
                 var proxy = account[2];
-                Console.WriteLine($"Starting verification for {username}");
+                LoggingHelper.Log($"Starting verification for {username}");
 
                 if (VerifyAccount(username, proxy))
                 {
-                    Console.WriteLine($"Account {username} Successfully verified");
+                    LoggingHelper.Log($"Account {username} Successfully verified", LoggingHelper.LogType.Success);
                 } 
                 else
                 {
-                    Console.WriteLine($"Failed to verify account {username}, please try manually");
+                    LoggingHelper.Log($"Failed to verify account {username}, please try manually", LoggingHelper.LogType.Error);
                 }
             }
 
-            Console.WriteLine("Task completed successfully");
+            LoggingHelper.Log("Task completed successfully", LoggingHelper.LogType.Success);
         }
 
         private string GenerateAccount(string proxy)
         {
-            Console.WriteLine($"Starting to generate account with proxy: {proxy}");
+            LoggingHelper.Log($"Starting to generate account with proxy: {proxy}");
 
             var tokenTask = caphandler.GetTurnstile("https://dashboard.dawninternet.com/signup", dawnTurnstileKey);
             tokenTask.Wait();
@@ -120,13 +120,13 @@ namespace AccountGen.Modules.Dawn
 
             if (res == null)
             {
-                Console.WriteLine("Error generating account (null)");
+                LoggingHelper.Log("Error generating account (null)", LoggingHelper.LogType.Error);
                 return ",,";
             }
 
             if (res.Status != 200)
             {
-                Console.WriteLine($"Error generating account ({res.Status})");
+                LoggingHelper.Log($"Error generating account ({res.Status})", LoggingHelper.LogType.Error);
                 return ",,";
             }
 
@@ -135,19 +135,19 @@ namespace AccountGen.Modules.Dawn
                 var jsonBody = JObject.Parse(res.Body);
                 if (jsonBody["success"].Value<bool?>() == false)
                 {
-                    Console.WriteLine("Failed to create account");
+                    LoggingHelper.Log("Failed to create account", LoggingHelper.LogType.Error);
                     return ",,";
                 }
 
-                Console.WriteLine("Generated new account");
+                LoggingHelper.Log("Generated new account", LoggingHelper.LogType.Success);
 
                 return $"{email},{password},{ProxyHelper.UnformatProxy(proxy)}";
 
             } 
             catch (Exception ex) 
             {
-                Console.WriteLine("Error checking if success");
-                Console.WriteLine(ex.ToString());
+                LoggingHelper.Log("Error checking if success", LoggingHelper.LogType.Error);
+                LoggingHelper.Log(ex.ToString());
                 return ",,";
             }
         }
@@ -158,7 +158,7 @@ namespace AccountGen.Modules.Dawn
             
             if (string.IsNullOrWhiteSpace(verificationId))
             {
-                Console.WriteLine("Could not find verification id");
+                LoggingHelper.Log("Could not find verification id", LoggingHelper.LogType.Error);
                 return false;
             }
 
@@ -182,13 +182,13 @@ namespace AccountGen.Modules.Dawn
 
             if (res == null)
             {
-                Console.WriteLine("Response was null");
+                LoggingHelper.Log("Response was null", LoggingHelper.LogType.Error);
                 return false;
             }
 
             if (res.Status != 200)
             {
-                Console.WriteLine($"Status Code {res.Status}");
+                LoggingHelper.Log($"Status Code {res.Status}", LoggingHelper.LogType.Error);
                 return false;
             }
 
@@ -197,7 +197,7 @@ namespace AccountGen.Modules.Dawn
                 var jsonBody = JObject.Parse(res.Body);
                 if (jsonBody["success"].Value<bool?>() == false)
                 {
-                    Console.WriteLine("Got the following response when verifying: " + jsonBody.ToString());
+                    LoggingHelper.Log("Got the following response when verifying: " + jsonBody.ToString(), LoggingHelper.LogType.Error);
                     return false;
                 }
 
@@ -206,8 +206,8 @@ namespace AccountGen.Modules.Dawn
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error checking if success");
-                Console.WriteLine(ex.ToString());
+                LoggingHelper.Log("Error checking if success", LoggingHelper.LogType.Error);
+                LoggingHelper.Log(ex.ToString());
                 return false;
             }
         }
