@@ -18,7 +18,7 @@ namespace AccountGen.Utils
             CatchallDomain = "",
             TwoLetterCountryCode = "DE",
             DawnReferralCode = "",
-            GrassReferralCode = "EV08HjfB81lPdgM",
+            GrassReferralCode = "",
             InputProxyFile = "./Input/Proxies.txt",
             OutputFolder = "./Output/",
             ImapHost = "imap.gmail.com",
