@@ -19,5 +19,6 @@ namespace AccountGen.Classes
         public required string ImapPort { get; set; }
         public required string ImapUsername { get; set; }
         public required string ImapPassword { get; set; }
+        public required int GenDelay { get; set; }
     }
 }
