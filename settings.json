@@ -7,7 +7,8 @@
   "InputProxyFile": "./Input/Proxies.txt",
   "OutputFolder": "./Output/",
   "ImapHost": "imap.gmail.com",
-  "ImapPort": 993,
+  "ImapPort": "993",
   "ImapUsername": "",
-  "ImapPassword": ""
+  "ImapPassword": "",
+  "GenDelay": 0
 }

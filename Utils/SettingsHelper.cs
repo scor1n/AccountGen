@@ -24,7 +24,8 @@ namespace AccountGen.Utils
             ImapHost = "imap.gmail.com",
             ImapPort = "993",
             ImapUsername = "",
-            ImapPassword = ""
+            ImapPassword = "",
+            GenDelay = 0
         };
 
         private static readonly string settingsFilename = "settings.json";
@@ -252,6 +253,25 @@ namespace AccountGen.Utils
             }
 
             return settings.ImapPassword;
+        }
+
+        public static int GetGenDelay()
+        {
+            if (File.Exists(settingsFilename))
+            {
+                using StreamReader r = new(settingsFilename);
+                string json = r.ReadToEnd();
+                settings = JObject.Parse(json).ToObject<Settings>() ?? settings;
+            }
+            else
+            {
+                Console.WriteLine("Settings.json does not exist. Creating a new one which you must fill in with your information");
+                var jsonString = JObject.FromObject(settings).ToString(Formatting.Indented);
+                File.WriteAllText(settingsFilename, jsonString);
+                return 0;
+            }
+
+            return settings.GenDelay;
         }
     }
 }

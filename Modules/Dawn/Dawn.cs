@@ -38,6 +38,7 @@ namespace AccountGen.Modules.Dawn
             LoggingHelper.Log($"Starting to generate {quantity} accounts");
             List<string> accounts = new List<string>();
             accounts.Add("email,password,proxy");
+            var delay = SettingsHelper.GetGenDelay();
             for (int i = 0; i < quantity; i++)
             {
                 var account = GenerateAccount(proxies[random.Next(proxies.Count)]);
@@ -49,6 +50,8 @@ namespace AccountGen.Modules.Dawn
                 {
                     i--;
                 }
+                LoggingHelper.Log($"Waiting {delay}ms before continuing");
+                Thread.Sleep(delay);
             }
 
             LoggingHelper.Log("Finished generating accounts!", LoggingHelper.LogType.Success);
@@ -91,7 +94,7 @@ namespace AccountGen.Modules.Dawn
             tokenTask.Wait();
             var token = tokenTask.Result ?? "";
 
-            string url = "https://ext-api.dawninternet.com/chromeapi/dawn/v2/dashboard/user/validate-register?appid=67afb7b052e901649cb1b685";
+            string url = "https://ext-api.dawninternet.com/chromeapi/dawn/v2/dashboard/user/validate-register";
 
             var headers = new Dictionary<string, string>
             {
