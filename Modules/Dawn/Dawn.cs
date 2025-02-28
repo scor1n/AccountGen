@@ -2,6 +2,7 @@
 using AccountGen.Utils;
 using Newtonsoft.Json.Linq;
 using RandomNameGeneratorLibrary;
+using System.Collections.Generic;
 
 namespace AccountGen.Modules.Dawn
 {
@@ -14,7 +15,6 @@ namespace AccountGen.Modules.Dawn
         private readonly string catchallDomain = SettingsHelper.GetCatchallDomain();
         private readonly string capsolverKey = SettingsHelper.GetCapsolverKey();
         private readonly string twoLetterCountryCode = SettingsHelper.GetTwoLetterCountryCode();
-        private readonly string dawnReferralCode = SettingsHelper.GetDawnReferralCode();
         private readonly string dawnTurnstileKey = "0x4AAAAAAA48wVDquA-98fyV";
 
         internal void GenerateAccounts(int quantity)
@@ -35,13 +35,19 @@ namespace AccountGen.Modules.Dawn
                 return;
             }
 
+            var referralCodes = SettingsHelper.GetDawnReferralCodes();
+            if (referralCodes.Count == 0)
+            {
+                LoggingHelper.Log("Did not find any referral codes!", LoggingHelper.LogType.Error);
+            }
+
             LoggingHelper.Log($"Starting to generate {quantity} accounts");
-            List<string> accounts = new List<string>();
+            List<string> accounts = [];
             accounts.Add("email,password,proxy");
             var delay = SettingsHelper.GetGenDelay();
             for (int i = 0; i < quantity; i++)
             {
-                var account = GenerateAccount(proxies[random.Next(proxies.Count)]);
+                var account = GenerateAccount(proxies[i % proxies.Count], referralCodes.Count > 0 ? referralCodes[i % referralCodes.Count] : "");
                 if (account != ",,")
                 {
                     accounts.Add(account);
@@ -86,7 +92,7 @@ namespace AccountGen.Modules.Dawn
             LoggingHelper.Log("Task completed successfully", LoggingHelper.LogType.Success);
         }
 
-        private string GenerateAccount(string proxy)
+        private string GenerateAccount(string proxy, string referralCode = "")
         {
             LoggingHelper.Log($"Starting to generate account with proxy: {proxy}");
 
@@ -115,7 +121,7 @@ namespace AccountGen.Modules.Dawn
                 { "lastname", names[1] },
                 { "mobile", "" },
                 { "password", password },
-                { "referralCode", dawnReferralCode },
+                { "referralCode", referralCode },
                 { "token", token }
             };
 

@@ -17,8 +17,8 @@ namespace AccountGen.Utils
             CapsolverKey = "",
             CatchallDomain = "",
             TwoLetterCountryCode = "DE",
-            DawnReferralCode = "",
-            GrassReferralCode = "",
+            DawnReferralCodesFile = "./Input/DawnReferralCodes.txt",
+            GrassReferralCodesFile = "./Input/GrassReferralCodes.txt",
             InputProxyFile = "./Input/Proxies.txt",
             OutputFolder = "./Output/",
             ImapHost = "imap.gmail.com",
@@ -103,7 +103,7 @@ namespace AccountGen.Utils
             return settings.TwoLetterCountryCode;
         }
 
-        public static string GetDawnReferralCode()
+        public static List<string> GetDawnReferralCodes()
         {
             if (File.Exists(settingsFilename))
             {
@@ -116,13 +116,26 @@ namespace AccountGen.Utils
                 Console.WriteLine("Settings.json does not exist. Creating a new one which you must fill in with your information");
                 var jsonString = JObject.FromObject(settings).ToString(Formatting.Indented);
                 File.WriteAllText(settingsFilename, jsonString);
-                return "";
+                return [];
             }
 
-            return settings.DawnReferralCode;
+            List<string> formatedList = [];
+
+            try
+            {
+                formatedList = File.ReadAllLines(settings.DawnReferralCodesFile)
+                .Select(line => line.Trim())
+                .ToList();
+            }
+            catch (Exception  ex)
+            {
+                LoggingHelper.Log(ex.Message, LoggingHelper.LogType.Error);
+            }
+
+            return formatedList;
         }
 
-        public static string GetGrassReferralCode()
+        public static List<string> GetGrassReferralCodes()
         {
             if (File.Exists(settingsFilename))
             {
@@ -135,10 +148,23 @@ namespace AccountGen.Utils
                 Console.WriteLine("Settings.json does not exist. Creating a new one which you must fill in with your information");
                 var jsonString = JObject.FromObject(settings).ToString(Formatting.Indented);
                 File.WriteAllText(settingsFilename, jsonString);
-                return "EV08HjfB81lPdgM";
+                return [];
             }
 
-            return settings.GrassReferralCode;
+            List<string> formatedList = [];
+
+            try
+            {
+                formatedList = File.ReadAllLines(settings.GrassReferralCodesFile)
+                .Select(line => line.Trim())
+                .ToList();
+            }
+            catch (Exception ex)
+            {
+                LoggingHelper.Log(ex.Message, LoggingHelper.LogType.Error);
+            }
+
+            return formatedList;
         }
 
         public static string GetInputProxyFile()
