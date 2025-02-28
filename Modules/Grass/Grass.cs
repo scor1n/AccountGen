@@ -12,7 +12,6 @@ namespace AccountGen.Modules.Grass
         private PersonNameGenerator nameGenerator = new PersonNameGenerator();
         private readonly string catchallDomain = SettingsHelper.GetCatchallDomain();
         private readonly string capsolverKey = SettingsHelper.GetCapsolverKey();
-        private readonly string grassReferralCode = SettingsHelper.GetGrassReferralCode();
 
         internal void GenerateAccounts(int quantity)
         {
@@ -32,12 +31,29 @@ namespace AccountGen.Modules.Grass
                 return;
             }
 
+            var referralCodes = SettingsHelper.GetGrassReferralCodes();
+            if (referralCodes.Count == 0)
+            {
+                LoggingHelper.Log("Did not find any referral codes!", LoggingHelper.LogType.Error);
+            }
+
             LoggingHelper.Log($"Starting to generate {quantity} accounts");
             List<string> accounts = new List<string>();
             accounts.Add("email,password,proxy");
+            var delay = SettingsHelper.GetGenDelay();
             for (int i = 0; i < quantity; i++)
             {
-                accounts.Add(GenerateAccount(proxies[random.Next(proxies.Count)]));
+                var account = GenerateAccount(proxies[i % proxies.Count], referralCodes.Count > 0 ? referralCodes[i % referralCodes.Count] : "");
+                if (account != ",,")
+                {
+                    accounts.Add(account);
+                }
+                else
+                {
+                    i--;
+                }
+                LoggingHelper.Log($"Waiting {delay}ms before continuing");
+                Thread.Sleep(delay);
             }
 
             LoggingHelper.Log("Finished generating accounts!", LoggingHelper.LogType.Success);
@@ -48,7 +64,7 @@ namespace AccountGen.Modules.Grass
             LoggingHelper.Log($"Successfully saved accounts to {filePath}", LoggingHelper.LogType.Success);
         }
 
-        private string GenerateAccount(string proxy)
+        private string GenerateAccount(string proxy, string referralCode = "")
         {
             LoggingHelper.Log($"Starting to generate account with proxy: {proxy}");
             string key = "6LeeT-0pAAAAAFJ5JnCpNcbYCBcAerNHlkK4nm6y";
@@ -85,7 +101,7 @@ namespace AccountGen.Modules.Grass
                 { "email", email },
                 { "password", password },
                 { "role", "USER" },
-                { "referralCode", grassReferralCode },
+                { "referralCode", referralCode },
                 { "marketingEmailConsent", false },
                 { "recaptchaToken", token }
             };

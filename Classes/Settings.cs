@@ -11,8 +11,8 @@ namespace AccountGen.Classes
         public required string CapsolverKey { get; set; }
         public required string CatchallDomain { get; set; }
         public required string TwoLetterCountryCode { get; set; }
-        public required string DawnReferralCode { get; set; }
-        public required string GrassReferralCode { get; set; }
+        public required string DawnReferralCodesFile { get; set; }
+        public required string GrassReferralCodesFile { get; set; }
         public required string InputProxyFile { get; set; }
         public required string OutputFolder { get; set; }
         public required string ImapHost { get; set; }
