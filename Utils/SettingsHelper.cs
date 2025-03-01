@@ -20,6 +20,7 @@ namespace AccountGen.Utils
             DawnReferralCodesFile = "./Input/DawnReferralCodes.txt",
             GrassReferralCodesFile = "./Input/GrassReferralCodes.txt",
             InputProxyFile = "./Input/Proxies.txt",
+            InputLoggedInAccountsFile = "./Input/LoggedInAccounts.csv",
             OutputFolder = "./Output/",
             ImapHost = "imap.gmail.com",
             ImapPort = "993",
@@ -184,6 +185,25 @@ namespace AccountGen.Utils
             }
 
             return settings.InputProxyFile;
+        }
+
+        public static string GetInputLoggedInAccountsFile()
+        {
+            if (File.Exists(settingsFilename))
+            {
+                using StreamReader r = new(settingsFilename);
+                string json = r.ReadToEnd();
+                settings = JObject.Parse(json).ToObject<Settings>() ?? settings;
+            }
+            else
+            {
+                Console.WriteLine("Settings.json does not exist. Creating a new one which you must fill in with your information");
+                var jsonString = JObject.FromObject(settings).ToString(Formatting.Indented);
+                File.WriteAllText(settingsFilename, jsonString);
+                return "./Input/LoggedInAccounts.csv";
+            }
+
+            return settings.InputLoggedInAccountsFile;
         }
 
         public static string GetOutputFolder()

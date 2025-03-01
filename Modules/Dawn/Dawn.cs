@@ -3,6 +3,7 @@ using AccountGen.Utils;
 using Newtonsoft.Json.Linq;
 using RandomNameGeneratorLibrary;
 using System.Collections.Generic;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace AccountGen.Modules.Dawn
 {
@@ -16,6 +17,8 @@ namespace AccountGen.Modules.Dawn
         private readonly string capsolverKey = SettingsHelper.GetCapsolverKey();
         private readonly string twoLetterCountryCode = SettingsHelper.GetTwoLetterCountryCode();
         private readonly string dawnTurnstileKey = "0x4AAAAAAA48wVDquA-98fyV";
+        private readonly string dawnAppVersion = "1.1.3";
+        private readonly string dawnExtensionId = "fpdkjdnhkakefebpekbdhillbhonfjjp";
 
         internal void GenerateAccounts(int quantity)
         {
@@ -221,5 +224,151 @@ namespace AccountGen.Modules.Dawn
             }
         }
 
+        internal void GetReferralCodes()
+        {
+            var loggedInAccountsCsvPath = SettingsHelper.GetInputLoggedInAccountsFile();
+
+            var records = new List<Dictionary<string, string>>();
+
+            string[] lines = File.ReadAllLines(loggedInAccountsCsvPath);
+            string[] headers = lines[0].Split(',');
+
+            string[] requiredHeaders = { "username", "password", "proxy", "app_id", "bearer_token" };
+
+            bool hasAllHeaders = requiredHeaders.All(h => headers.Contains(h));
+
+            if (!hasAllHeaders)
+            {
+                LoggingHelper.Log("CSV is missing required headers!", LoggingHelper.LogType.Error);
+                return;
+            }
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                string[] values = lines[i].Split(',');
+                var record = new Dictionary<string, string>();
+
+                for (int j = 0; j < headers.Length; j++)
+                {
+                    record[headers[j]] = values[j];
+                }
+
+                records.Add(record);
+            }
+
+            Dictionary<string, string> emailToReferralCode = new();
+
+            LoggingHelper.Log("Starting to get referral codes");
+
+            for (int i = 1; i < records.Count; i++)
+            {
+                try
+                {
+                    var currentRecord = records[i];
+
+                    string referralCode = "";
+                    int tries = 0;
+
+                    string bearerToken = currentRecord["bearer_token"];
+                    string appId = currentRecord["app_id"];
+                    string proxy = currentRecord["proxy"];
+                    string username = currentRecord["username"];
+
+                    do
+                    {
+                        referralCode = GetReferralCode(bearerToken, appId, proxy);
+                        tries++;
+                    } while (string.IsNullOrWhiteSpace(referralCode) && tries < 5);
+
+                    if (string.IsNullOrWhiteSpace(referralCode))
+                    {
+                        LoggingHelper.Log($"Failed to get referral code for account {username} 5 times!", LoggingHelper.LogType.Error);
+                    }
+                    else
+                    {
+                        LoggingHelper.Log($"Got referral code for {username}", LoggingHelper.LogType.Success);
+                        emailToReferralCode.Add(username, referralCode);
+                    }
+                }
+                catch (Exception ex) 
+                {
+                    LoggingHelper.Log($"Failed to get referal code with error: {ex.Message}", LoggingHelper.LogType.Error);
+                }
+            }
+
+            LoggingHelper.Log("Finished grabbing referral codes, writing to output file", LoggingHelper.LogType.Success);
+
+            var csvRows = emailToReferralCode.Select(kv => $"{kv.Key},{kv.Value}").ToList();
+
+            csvRows.Insert(0, "username,referral_code");
+
+            var filePath = $"{SettingsHelper.GetOutputFolder()}dawnReferralCodes-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}.csv";
+            
+            File.WriteAllLines(filePath, csvRows);
+
+            LoggingHelper.Log("Saved referral codes to file!", LoggingHelper.LogType.Success);
+        }
+
+        private string GetReferralCode(string bearerToken, string appId, string proxy)
+        {
+            string url = $"https://www.aeropres.in/api/atom/v1/userreferral/getpoint?appid={appId}";
+
+            var headers = new Dictionary<string, string>
+            {
+                { "sec-ch-ua-platform", "\"Windows\"" },
+                { "Authorization", bearerToken },
+                { "User-Agent", tlsSession.UserAgent },
+                { "sec-ch-ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"129\", \"Chromium\";v=\"129\"" },
+                { "DNT", "1" },
+                { "Content-Type", "application/json" },
+                { "sec-ch-ua-mobile", "?0" },
+                { "Accept", "*/*" },
+                { "Origin", $"chrome-extension://{dawnExtensionId}" },
+                { "Sec-Fetch-Site", "cross-site" },
+                { "Sec-Fetch-Mode", "cors" },
+                { "Sec-Fetch-Dest", "empty" },
+                { "Accept-Encoding", "gzip, deflate, br, zstd" },
+                { "Accept-Language", "en-US,en;q=0.9,fr;q=0.8" },
+                { "Pragma", "no-cache" },
+                { "Cache-Control", "no-cache" }
+            };
+
+            var res = tlsSession.Get(url, headers, differentSession: true, proxy: ProxyHelper.FormatProxy(proxy));
+
+            if (res == null)
+            {
+                LoggingHelper.Log("Response was null", LoggingHelper.LogType.Error);
+                return "";
+            }
+
+            if (res.Status != 200)
+            {
+                LoggingHelper.Log($"Status Code {res.Status}", LoggingHelper.LogType.Error);
+                return "";
+            }
+
+            try
+            {
+                var jsonBody = JObject.Parse(res.Body);
+                if (jsonBody["status"]?.Value<bool?>() == false)
+                {
+                    LoggingHelper.Log("Got the following response when getting referral code: " + jsonBody.ToString(), LoggingHelper.LogType.Error);
+                    return "";
+                } 
+                else if (jsonBody["message"]?.Value<string?>() != "success")
+                {
+                    LoggingHelper.Log("Got the following response when getting referral code: " + jsonBody.ToString(), LoggingHelper.LogType.Error);
+                    return "";
+                }
+
+                return jsonBody["data"]?["referralPoint"]?["referralCode"]?.ToString() ?? "";
+            }
+            catch (Exception ex)
+            {
+                LoggingHelper.Log("Error checking response body", LoggingHelper.LogType.Error);
+                LoggingHelper.Log(ex.ToString());
+                return "";
+            }
+        }
     }
 }

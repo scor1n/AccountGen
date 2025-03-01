@@ -10,7 +10,7 @@ namespace AccountGen
         static void Main(string[] args)
         {
             SettingsHelper.InitSettings();
-            LoggingHelper.Log("Press 1 to generate dawn accounts or 2 for grass accounts");
+            LoggingHelper.Log("Press 1 to generate dawn accounts or 2 for grass accounts or 3 to get dawn referral codes");
             var answer = Console.ReadLine();
             if (answer?.Contains("1") ?? false)
             {
@@ -41,6 +41,11 @@ namespace AccountGen
                 {
                     LoggingHelper.Log("Invalid option", LoggingHelper.LogType.Error);
                 }
+            }
+            else if (answer?.Contains("3") ?? false)
+            {
+                var dawnModule = new Dawn();
+                dawnModule.GetReferralCodes();
             }
             else
             {
