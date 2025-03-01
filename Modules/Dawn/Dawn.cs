@@ -260,41 +260,52 @@ namespace AccountGen.Modules.Dawn
 
             LoggingHelper.Log("Starting to get referral codes");
 
+            var tasks = new List<Task>();
+
+            // Launch all GetReferralCode tasks in parallel
             for (int i = 1; i < records.Count; i++)
             {
-                try
+                var currentRecord = records[i];
+                tasks.Add(Task.Run(async () =>
                 {
-                    var currentRecord = records[i];
-
-                    string referralCode = "";
-                    int tries = 0;
-
-                    string bearerToken = currentRecord["bearer_token"];
-                    string appId = currentRecord["app_id"];
-                    string proxy = currentRecord["proxy"];
-                    string username = currentRecord["username"];
-
-                    do
+                    try
                     {
-                        referralCode = GetReferralCode(bearerToken, appId, proxy);
-                        tries++;
-                    } while (string.IsNullOrWhiteSpace(referralCode) && tries < 5);
+                        string referralCode = "";
+                        int tries = 0;
 
-                    if (string.IsNullOrWhiteSpace(referralCode))
-                    {
-                        LoggingHelper.Log($"Failed to get referral code for account {username} 5 times!", LoggingHelper.LogType.Error);
+                        string bearerToken = currentRecord["bearer_token"];
+                        string appId = currentRecord["app_id"];
+                        string proxy = currentRecord["proxy"];
+                        string username = currentRecord["username"];
+
+                        do
+                        {
+                            referralCode = GetReferralCode(bearerToken, appId, proxy, username);
+                            tries++;
+                        } while (string.IsNullOrWhiteSpace(referralCode) && tries < 5);
+
+                        if (string.IsNullOrWhiteSpace(referralCode))
+                        {
+                            LoggingHelper.Log($"Failed to get referral code for account {username} 5 times!", LoggingHelper.LogType.Error);
+                        }
+                        else
+                        {
+                            LoggingHelper.Log($"Got referral code for {username}", LoggingHelper.LogType.Success);
+                            lock (emailToReferralCode)
+                            {
+                                emailToReferralCode.Add(username, referralCode);
+                            }
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        LoggingHelper.Log($"Got referral code for {username}", LoggingHelper.LogType.Success);
-                        emailToReferralCode.Add(username, referralCode);
+                        LoggingHelper.Log($"Failed to get referral code with error: {ex.Message}", LoggingHelper.LogType.Error);
                     }
-                }
-                catch (Exception ex) 
-                {
-                    LoggingHelper.Log($"Failed to get referal code with error: {ex.Message}", LoggingHelper.LogType.Error);
-                }
+                }));
             }
+
+            // Wait for all tasks to complete
+            Task.WhenAll(tasks).Wait();
 
             LoggingHelper.Log("Finished grabbing referral codes, writing to output file", LoggingHelper.LogType.Success);
 
@@ -309,7 +320,7 @@ namespace AccountGen.Modules.Dawn
             LoggingHelper.Log("Saved referral codes to file!", LoggingHelper.LogType.Success);
         }
 
-        private string GetReferralCode(string bearerToken, string appId, string proxy)
+        private string GetReferralCode(string bearerToken, string appId, string proxy, string username)
         {
             string url = $"https://www.aeropres.in/api/atom/v1/userreferral/getpoint?appid={appId}";
 
@@ -337,13 +348,13 @@ namespace AccountGen.Modules.Dawn
 
             if (res == null)
             {
-                LoggingHelper.Log("Response was null", LoggingHelper.LogType.Error);
+                LoggingHelper.Log($"{username} - Response was null", LoggingHelper.LogType.Error);
                 return "";
             }
 
             if (res.Status != 200)
             {
-                LoggingHelper.Log($"Status Code {res.Status}", LoggingHelper.LogType.Error);
+                LoggingHelper.Log($"{username} - Status Code {res.Status}", LoggingHelper.LogType.Error);
                 return "";
             }
 
@@ -352,12 +363,12 @@ namespace AccountGen.Modules.Dawn
                 var jsonBody = JObject.Parse(res.Body);
                 if (jsonBody["status"]?.Value<bool?>() == false)
                 {
-                    LoggingHelper.Log("Got the following response when getting referral code: " + jsonBody.ToString(), LoggingHelper.LogType.Error);
+                    LoggingHelper.Log($"{username} - Got the following response when getting referral code: " + jsonBody.ToString(), LoggingHelper.LogType.Error);
                     return "";
                 } 
                 else if (jsonBody["message"]?.Value<string?>() != "success")
                 {
-                    LoggingHelper.Log("Got the following response when getting referral code: " + jsonBody.ToString(), LoggingHelper.LogType.Error);
+                    LoggingHelper.Log($"{username} - Got the following response when getting referral code: " + jsonBody.ToString(), LoggingHelper.LogType.Error);
                     return "";
                 }
 
@@ -365,7 +376,7 @@ namespace AccountGen.Modules.Dawn
             }
             catch (Exception ex)
             {
-                LoggingHelper.Log("Error checking response body", LoggingHelper.LogType.Error);
+                LoggingHelper.Log($"{username} - Error checking response body", LoggingHelper.LogType.Error);
                 LoggingHelper.Log(ex.ToString());
                 return "";
             }

@@ -100,170 +100,38 @@ namespace AccountGen.Utils
 
         public RequestResult Get(string url, Dictionary<string, string> additionalHeaders = null, Dictionary<string, string> headers = null, bool differentSession = false, bool withoutProxy = false, string proxy = "")
         {
-            if (headers != null)
-            {
-                this.sessionPayload.Headers = headers;
-            }
-
-            if (differentSession)
-            {
-                this.sessionPayload.sessionId = Guid.NewGuid().ToString();
-            }
-            else
-            {
-                this.sessionPayload.sessionId = this.sessionID;
-            }
-
-            if (withoutProxy)
-            {
-                this.sessionPayload.ProxyUrl = "";
-            }
-
-            if (!string.IsNullOrEmpty(proxy))
-            {
-                this.sessionPayload.ProxyUrl = proxy;
-            }
-
-            return this.MakeRequest("GET", url, MergeHeaders(this.sessionPayload.Headers, additionalHeaders));
+            return this.MakeRequest("GET", url, MergeHeaders(headers ?? this.sessionPayload.Headers, additionalHeaders), "", differentSession, proxy);
         }
 
         public RequestResult Post(string url, Dictionary<string, string> additionalHeaders = null, string body = "", Dictionary<string, string> headers = null, bool differentSession = false, bool withoutProxy = false, string proxy = "")
         {
-            if (headers != null)
-            {
-                this.sessionPayload.Headers = headers;
-            }
+            return this.MakeRequest("POST", url, MergeHeaders(headers ?? this.sessionPayload.Headers, additionalHeaders), body, differentSession, proxy);
+        }
 
-            if (differentSession)
-            {
-                this.sessionPayload.sessionId = Guid.NewGuid().ToString();
-            }
-            else
-            {
-                this.sessionPayload.sessionId = this.sessionID;
-            }
+        private RequestResult MakeRequest(string method, string url, Dictionary<string, string> headers, string body = "", bool withDifferentSession = false, string proxy = "")
+        {
+            var newSessionPayload = this.sessionPayload;
 
-            if (withoutProxy)
+            if (withDifferentSession) 
             {
-                this.sessionPayload.ProxyUrl = "";
+                newSessionPayload.sessionId = Guid.NewGuid().ToString();
             }
 
             if (!string.IsNullOrEmpty(proxy))
             {
-                this.sessionPayload.ProxyUrl = proxy;
+                newSessionPayload.ProxyUrl = proxy;
             }
 
-            return this.MakeRequest("POST", url, MergeHeaders(this.sessionPayload.Headers, additionalHeaders), body);
-        }
-        public RequestResult Patch(string url, Dictionary<string, string> additionalHeaders = null, string body = "", Dictionary<string, string> headers = null, bool differentSession = false, string proxy = "")
-        {
-            if (headers != null)
-            {
-                this.sessionPayload.Headers = headers;
-            }
+            newSessionPayload.RequestMethod = method;
+            newSessionPayload.RequestUrl = url;
+            newSessionPayload.Headers = headers;
+            newSessionPayload.RequestBody = body;
+            newSessionPayload.HeaderOrder = new List<string>(headers.Keys);
 
-            if (differentSession)
-            {
-                this.sessionPayload.sessionId = Guid.NewGuid().ToString();
-            }
-            else
-            {
-                this.sessionPayload.sessionId = this.sessionID;
-            }
-
-            if (!string.IsNullOrEmpty(proxy))
-            {
-                this.sessionPayload.ProxyUrl = proxy;
-            }
-
-            return this.MakeRequest("PATCH", url, MergeHeaders(this.sessionPayload.Headers, additionalHeaders), body);
-        }
-        public RequestResult Put(string url, Dictionary<string, string> additionalHeaders = null, string body = "", Dictionary<string, string> headers = null, bool differentSession = false, string proxy = "")
-        {
-            if (headers != null)
-            {
-                this.sessionPayload.Headers = headers;
-            }
-
-            if (differentSession)
-            {
-                this.sessionPayload.sessionId = Guid.NewGuid().ToString();
-            }
-            else
-            {
-                this.sessionPayload.sessionId = this.sessionID;
-            }
-
-            if (!string.IsNullOrEmpty(proxy))
-            {
-                this.sessionPayload.ProxyUrl = proxy;
-            }
-
-            return this.MakeRequest("PUT", url, MergeHeaders(this.sessionPayload.Headers, additionalHeaders), body);
-        }
-        public RequestResult Delete(string url, Dictionary<string, string> additionalHeaders = null, Dictionary<string, string> headers = null, bool differentSession = false, string proxy = "")
-        {
-            if (headers != null)
-            {
-                this.sessionPayload.Headers = headers;
-            }
-
-            if (differentSession)
-            {
-                this.sessionPayload.sessionId = Guid.NewGuid().ToString();
-            }
-            else
-            {
-                this.sessionPayload.sessionId = this.sessionID;
-            }
-
-            if (!string.IsNullOrEmpty(proxy))
-            {
-                this.sessionPayload.ProxyUrl = proxy;
-            }
-
-            return this.MakeRequest("DELETE", url, MergeHeaders(this.sessionPayload.Headers, additionalHeaders));
-        }
-        public RequestResult Head(string url, Dictionary<string, string> additionalHeaders = null, Dictionary<string, string> headers = null, bool differentSession = false, string proxy = "")
-        {
-            if (headers != null)
-            {
-                this.sessionPayload.Headers = headers;
-            }
-
-            if (differentSession)
-            {
-                this.sessionPayload.sessionId = Guid.NewGuid().ToString();
-            }
-            else
-            {
-                this.sessionPayload.sessionId = this.sessionID;
-            }
-
-            if (!string.IsNullOrEmpty(proxy))
-            {
-                this.sessionPayload.ProxyUrl = proxy;
-            }
-
-            return this.MakeRequest("HEAD", url, MergeHeaders(this.sessionPayload.Headers, additionalHeaders));
-        }
-        public void ResetHeaders()
-        {
-            this.sessionPayload.Headers = defaultHeaders;
-        }
-
-        private RequestResult MakeRequest(string method, string url, Dictionary<string, string> headers, string body = "")
-        {
-            this.sessionPayload.RequestMethod = method;
-            this.sessionPayload.RequestUrl = url;
-            this.sessionPayload.Headers = headers;
-            this.sessionPayload.RequestBody = body;
-            this.sessionPayload.HeaderOrder = new List<string>(headers.Keys);
-
-            string requestJson = JsonConvert.SerializeObject(this.sessionPayload);
+            string requestJson = JsonConvert.SerializeObject(newSessionPayload);
             byte[] requestBytes = Encoding.UTF8.GetBytes(requestJson);
 
-            IntPtr responsePtr = request(requestBytes, this.sessionPayload.sessionId);
+            IntPtr responsePtr = request(requestBytes, newSessionPayload.sessionId);
             string responseJson = Marshal.PtrToStringAnsi(responsePtr);
 
             RequestResult result = JsonConvert.DeserializeObject<RequestResult>(responseJson);
@@ -278,15 +146,13 @@ namespace AccountGen.Utils
                     Console.WriteLine($"Retrying {method} request to {url} {retry}/3");
                     freeMemory(result.Id);
                     Thread.Sleep(500);
-                    responsePtr = request(requestBytes, this.sessionPayload.sessionId);
+                    responsePtr = request(requestBytes, newSessionPayload.sessionId);
                     responseJson = Marshal.PtrToStringAnsi(responsePtr);
                     result = JsonConvert.DeserializeObject<RequestResult>(responseJson);
                 }
             }
 
             freeMemory(result.Id);
-            this.ResetHeaders();
-            this.sessionPayload.ProxyUrl = this.Proxy;
 
             return result;
         }
