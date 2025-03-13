@@ -21,6 +21,7 @@ namespace AccountGen.Utils
             GrassReferralCodesFile = "./Input/GrassReferralCodes.txt",
             InputProxyFile = "./Input/Proxies.txt",
             InputLoggedInAccountsFile = "./Input/LoggedInAccounts.csv",
+            InputEmails = "./Input/Emails.txt",
             OutputFolder = "./Output/",
             ImapHost = "imap.gmail.com",
             ImapPort = "993",
@@ -204,6 +205,38 @@ namespace AccountGen.Utils
             }
 
             return settings.InputLoggedInAccountsFile;
+        }
+
+        public static List<string> GetEmails()
+        {
+            if (File.Exists(settingsFilename))
+            {
+                using StreamReader r = new(settingsFilename);
+                string json = r.ReadToEnd();
+                settings = JObject.Parse(json).ToObject<Settings>() ?? settings;
+            }
+            else
+            {
+                Console.WriteLine("Settings.json does not exist. Creating a new one which you must fill in with your information");
+                var jsonString = JObject.FromObject(settings).ToString(Formatting.Indented);
+                File.WriteAllText(settingsFilename, jsonString);
+                return [];
+            }
+
+            List<string> formatedList = [];
+
+            try
+            {
+                formatedList = File.ReadAllLines(settings.InputEmails ?? "")
+                .Select(line => line.Trim())
+                .ToList();
+            }
+            catch (Exception ex)
+            {
+                LoggingHelper.Log(ex.Message, LoggingHelper.LogType.Error);
+            }
+
+            return formatedList;
         }
 
         public static string GetOutputFolder()

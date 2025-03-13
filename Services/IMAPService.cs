@@ -12,8 +12,6 @@ namespace AccountGen.Services
     public sealed class IMAPService : IDisposable
     {
         private static readonly string fileName = MethodBase.GetCurrentMethod()!.DeclaringType!.ToString();
-
-
         private static IMAPService? _instance;
         private static readonly object _lock = new object();
 
@@ -32,7 +30,40 @@ namespace AccountGen.Services
 
         public readonly ImapClient Client = new ImapClient();
 
-        public void Connect(string host, int port, string username, string password)
+        public IMailFolder? MailFolder { get; private set; }
+
+        private UniqueId LastId { get; set; } = new UniqueId();
+
+        public bool Connect()
+        {
+            string host = SettingsHelper.GetImapHost();
+            int port = int.Parse(SettingsHelper.GetImapPort());
+            string username = SettingsHelper.GetImapUsername();
+            string password = SettingsHelper.GetImapPassword();
+
+            if (!Client.IsConnected)
+            {
+                Connect(host, port, username, password);
+            }
+
+            if (!Client.IsConnected)
+            {
+                LoggingHelper.Log(fileName + " | Could not connect to IMAP", LoggingHelper.LogType.Error);
+                return false;
+            }
+
+            MailFolder = GetMainInboxAndOpenIt();
+
+            if (MailFolder == null)
+            {
+                LoggingHelper.Log(fileName + " | Failed to open inbox", LoggingHelper.LogType.Error);
+                return false;
+            }
+
+            return true;
+        }
+
+        private void Connect(string host, int port, string username, string password)
         {
             if (String.IsNullOrWhiteSpace(host) || port == 0 || String.IsNullOrWhiteSpace(username) || String.IsNullOrWhiteSpace(password))
             {
@@ -58,36 +89,24 @@ namespace AccountGen.Services
             }
         }
 
-        public string GetVerificationIdFromEmail(string requiredRecipient)
+        public string GetVerificationIdFromEmailDawn(string requiredRecipient)
         {
-            Console.WriteLine("Searching E-Mail for " + requiredRecipient);
-
-            string host = SettingsHelper.GetImapHost();
-            int port = int.Parse(SettingsHelper.GetImapPort());
-            string username = SettingsHelper.GetImapUsername();
-            string password = SettingsHelper.GetImapPassword();
-
-            if (!Client.IsConnected)
-            {
-                Connect(host, port, username, password);
-            }
-
-            if (!Client.IsConnected)
-            {
-                Console.WriteLine(fileName + " | Could Not Connect To IMAP");
-                return "";
-            }
-
-            var inbox = GetMainInboxAndOpenIt();
+            LoggingHelper.Log("Searching E-Mail for " + requiredRecipient);
 
             var query = SearchQuery.FromContains("hello@dawninternet.com").And(SearchQuery.NotSeen);
-            var uids = inbox.Search(query);
+
+            if (MailFolder == null || !Client.IsConnected)
+            {
+                Connect();
+            }
+
+            var uids = MailFolder.Search(query);
 
             // Check each email for the code and return it if found
 
             for (int i = 0; i < uids.Count; i++)
             {
-                MimeMessage message = inbox.GetMessage(uids[i]);
+                MimeMessage message = MailFolder.GetMessage(uids[i]);
                 InternetAddressList recipients = message.To;
                 recipients.AddRange(message.Cc);
                 recipients.AddRange(message.Bcc);
@@ -97,8 +116,6 @@ namespace AccountGen.Services
                 { 
                     string body = message.HtmlBody;
 
-                    MarkAsRead(inbox, uids[i]);
-
                     if (body.Contains("verify.dawninternet.com"))
                     {
                         // Use Regex to get the code
@@ -107,15 +124,62 @@ namespace AccountGen.Services
                         if (match.Success)
                         {
                             Console.WriteLine("E-Mail found for " + requiredRecipient);
-                            Disconnect();
+                            LastId = uids[i];
                             return match.Groups["guid"].Value;
                         }
                     }
                 }
             }
-
-            Disconnect();
             return "";
+        }
+
+        public string GetVerificationLinkFromEmailGrass(string requiredRecipient)
+        {
+            LoggingHelper.Log("Searching E-Mail for " + requiredRecipient);
+
+            var query = SearchQuery.FromContains("no-reply@grassfoundation.io").And(SearchQuery.NotSeen);
+
+            if (MailFolder == null || !Client.IsConnected)
+            {
+                Connect();
+            }
+
+            var uids = MailFolder.Search(query);
+
+            // Check each email for the code and return it if found
+
+            for (int i = 0; i < uids.Count; i++)
+            {
+                MimeMessage message = MailFolder.GetMessage(uids[i]);
+                InternetAddressList recipients = message.To;
+                recipients.AddRange(message.Cc);
+                recipients.AddRange(message.Bcc);
+
+                bool containsRequiredRecipient = recipients.OfType<MailboxAddress>().Any(mailbox => string.Equals(mailbox.Address, requiredRecipient, StringComparison.OrdinalIgnoreCase));
+                if (String.IsNullOrEmpty(requiredRecipient) || containsRequiredRecipient)
+                {
+                    string body = message.HtmlBody;
+
+                    if (body.Contains("confirm-email"))
+                    {
+                        // Use Regex to get the code
+                        string pattern = @"""([^""]*?confirm-email[^""]*?)"""; ;
+                        var match = Regex.Match(body, pattern);
+                        if (match.Success)
+                        {
+                            Console.WriteLine("E-Mail found for " + requiredRecipient);
+                            LastId = uids[i];
+                            return match.Groups[1].Value;
+                        }
+                    }
+                }
+            }
+            return "";
+        }
+
+        public void MarkLastEmailAsRead()
+        {
+            MarkAsRead(MailFolder, LastId);
         }
 
         public IMailFolder GetMainInboxAndOpenIt()
