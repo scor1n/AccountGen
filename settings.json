@@ -6,6 +6,7 @@
   "GrassReferralCodesFile": "./Input/GrassReferralCodes.txt",
   "InputProxyFile": "./Input/Proxies.txt",
   "InputLoggedInAccountsFile": "./Input/LoggedInAccounts.csv",
+  "InputEmails": "./Input/Emails.txt",
   "OutputFolder": "./Output/",
   "ImapHost": "imap.gmail.com",
   "ImapPort": "993",

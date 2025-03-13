@@ -1,6 +1,7 @@
 ﻿using AccountGen.Services;
 using AccountGen.Utils;
 using Newtonsoft.Json.Linq;
+using Org.BouncyCastle.Math;
 using RandomNameGeneratorLibrary;
 using System.Collections.Generic;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -9,15 +10,14 @@ namespace AccountGen.Modules.Dawn
 {
     internal class Dawn
     {
-        private CapsolverHandler caphandler = new CapsolverHandler();
-        private TLSSession tlsSession = new();
-        private Random random = new Random();
-        private PersonNameGenerator nameGenerator = new PersonNameGenerator();
+        private readonly CapsolverHandler caphandler = new();
+        private readonly TLSSession tlsSession = new();
+        private readonly Random random = new();
+        private readonly PersonNameGenerator nameGenerator = new();
         private readonly string catchallDomain = SettingsHelper.GetCatchallDomain();
         private readonly string capsolverKey = SettingsHelper.GetCapsolverKey();
         private readonly string twoLetterCountryCode = SettingsHelper.GetTwoLetterCountryCode();
         private readonly string dawnTurnstileKey = "0x4AAAAAAA48wVDquA-98fyV";
-        private readonly string dawnAppVersion = "1.1.3";
         private readonly string dawnExtensionId = "fpdkjdnhkakefebpekbdhillbhonfjjp";
 
         internal void GenerateAccounts(int quantity)
@@ -44,13 +44,24 @@ namespace AccountGen.Modules.Dawn
                 LoggingHelper.Log("Did not find any referral codes!", LoggingHelper.LogType.Error);
             }
 
+            var emailAddresses = SettingsHelper.GetEmails();
+            if (emailAddresses.Count == 0)
+            {
+                LoggingHelper.Log("No emails in email list, using catchall");
+            }
+            else if (emailAddresses.Count < quantity)
+            {
+                LoggingHelper.Log("Not enough emails provided, please add more or remove them to use catchall", LoggingHelper.LogType.Error);
+                return;
+            }
+
             LoggingHelper.Log($"Starting to generate {quantity} accounts");
             List<string> accounts = [];
             accounts.Add("email,password,proxy");
             var delay = SettingsHelper.GetGenDelay();
             for (int i = 0; i < quantity; i++)
             {
-                var account = GenerateAccount(proxies[i % proxies.Count], referralCodes.Count > 0 ? referralCodes[i % referralCodes.Count] : "");
+                var account = GenerateAccount(proxies[i % proxies.Count], referralCodes.Count > 0 ? referralCodes[i % referralCodes.Count] : "", emailAddresses.Count > 0 ? emailAddresses[i % emailAddresses.Count] : "");
                 if (account != ",,")
                 {
                     accounts.Add(account);
@@ -75,6 +86,8 @@ namespace AccountGen.Modules.Dawn
 
             LoggingHelper.Log("Starting to verify accounts");
 
+            IMAPService.GetInstance().Connect();
+
             for (int i = 1; i < accounts.Count; ++i)
             {
                 var account = accounts[i].Split(',');
@@ -85,6 +98,7 @@ namespace AccountGen.Modules.Dawn
                 if (VerifyAccount(username, proxy))
                 {
                     LoggingHelper.Log($"Account {username} Successfully verified", LoggingHelper.LogType.Success);
+                    IMAPService.GetInstance().MarkLastEmailAsRead();
                 } 
                 else
                 {
@@ -92,10 +106,12 @@ namespace AccountGen.Modules.Dawn
                 }
             }
 
+            IMAPService.GetInstance().Disconnect();
+
             LoggingHelper.Log("Task completed successfully", LoggingHelper.LogType.Success);
         }
 
-        private string GenerateAccount(string proxy, string referralCode = "")
+        private string GenerateAccount(string proxy, string referralCode = "", string email = "")
         {
             LoggingHelper.Log($"Starting to generate account with proxy: {proxy}");
 
@@ -111,7 +127,10 @@ namespace AccountGen.Modules.Dawn
             };
 
             var names = nameGenerator.GenerateRandomFirstAndLastName().Split(' ');
-            var email = $"{names[0]}.{names[1]}{random.Next(99)}@{catchallDomain}";
+            if (email.Length == 0)
+            {
+                email = $"{names[0]}.{names[1]}{random.Next(99)}@{catchallDomain}";
+            }
             var password = PasswordGenerator.GeneratePassword();
 
             var body = new Dictionary<string, object>
@@ -145,7 +164,7 @@ namespace AccountGen.Modules.Dawn
             try
             {
                 var jsonBody = JObject.Parse(res.Body);
-                if (jsonBody["success"].Value<bool?>() == false)
+                if (jsonBody["success"]?.Value<bool?>() == false)
                 {
                     LoggingHelper.Log("Failed to create account", LoggingHelper.LogType.Error);
                     return ",,";
@@ -166,7 +185,7 @@ namespace AccountGen.Modules.Dawn
 
         private bool VerifyAccount(string username, string proxy)
         {
-            var verificationId = IMAPService.GetInstance().GetVerificationIdFromEmail(username);
+            var verificationId = IMAPService.GetInstance().GetVerificationIdFromEmailDawn(username);
             
             if (string.IsNullOrWhiteSpace(verificationId))
             {
@@ -207,7 +226,7 @@ namespace AccountGen.Modules.Dawn
             try
             {
                 var jsonBody = JObject.Parse(res.Body);
-                if (jsonBody["success"].Value<bool?>() == false)
+                if (jsonBody["success"]?.Value<bool?>() == false)
                 {
                     LoggingHelper.Log("Got the following response when verifying: " + jsonBody.ToString(), LoggingHelper.LogType.Error);
                     return false;
@@ -233,7 +252,7 @@ namespace AccountGen.Modules.Dawn
             string[] lines = File.ReadAllLines(loggedInAccountsCsvPath);
             string[] headers = lines[0].Split(',');
 
-            string[] requiredHeaders = { "username", "password", "proxy", "app_id", "bearer_token" };
+            string[] requiredHeaders = ["username", "password", "proxy", "app_id", "bearer_token"];
 
             bool hasAllHeaders = requiredHeaders.All(h => headers.Contains(h));
 
@@ -256,7 +275,7 @@ namespace AccountGen.Modules.Dawn
                 records.Add(record);
             }
 
-            Dictionary<string, string> emailToReferralCode = new();
+            Dictionary<string, string> emailToReferralCode = [];
 
             LoggingHelper.Log("Starting to get referral codes");
 

@@ -7,12 +7,12 @@ namespace AccountGen
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             SettingsHelper.InitSettings();
-            LoggingHelper.Log("Press 1 to generate dawn accounts or 2 for grass accounts or 3 to get dawn referral codes");
+            LoggingHelper.Log("Press 1 to generate dawn accounts, 2 for grass accounts, 3 to get dawn referral codes");
             var answer = Console.ReadLine();
-            if (answer?.Contains("1") ?? false)
+            if (answer?.Contains('1') ?? false)
             {
                 LoggingHelper.Log("How many accounts would you like to generate?");
                 answer = Console.ReadLine();
@@ -27,7 +27,7 @@ namespace AccountGen
                     LoggingHelper.Log("Invalid option", LoggingHelper.LogType.Error);
                 }
             }
-            else if (answer?.Contains("2") ?? false)
+            else if (answer?.Contains('2') ?? false)
             {
                 LoggingHelper.Log("How many accounts would you like to generate?");
                 answer = Console.ReadLine();
@@ -42,7 +42,7 @@ namespace AccountGen
                     LoggingHelper.Log("Invalid option", LoggingHelper.LogType.Error);
                 }
             }
-            else if (answer?.Contains("3") ?? false)
+            else if (answer?.Contains('3') ?? false)
             {
                 var dawnModule = new Dawn();
                 dawnModule.GetReferralCodes();
